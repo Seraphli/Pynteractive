@@ -10,42 +10,45 @@ from pynteractive.graphd3 import *
 import atexit
 import os
 import pickle
-from webserver import *
+from .webserver import *
 
 
 class WebServices:
-	SERVERS_ON=False
-	@staticmethod
-	def webServerWorker():
-		serveraddr = ('', pyn_globals.PORT)
-		srvr = ThreadingServer(serveraddr, SimpleWS)
-		srvr.serve_forever()
+    SERVERS_ON = False
 
-	@staticmethod
-	def webSocketServerWorker():
-		WSOCKserver = SimpleWebSocketServer("localhost", pyn_globals.WEBSOCKETPORT, JSCom)
-		DataStruct._connect(WSOCKserver.sendAction)
-		WSOCKserver.serveforever()
+    @staticmethod
+    def webServerWorker():
+        serveraddr = ('', pyn_globals.PORT)
+        srvr = ThreadingServer(serveraddr, SimpleWS)
+        srvr.serve_forever()
 
-	@staticmethod
-	def stopServers():
-		a=open(os.path.join(os.path.expanduser("~"),".pynteractive"),'w')
-		pickle.dump(Map.CACHE,a)
-		a.close()
+    @staticmethod
+    def webSocketServerWorker():
+        global WSOCKserver
+        WSOCKserver = SimpleWebSocketServer("0.0.0.0",
+                                            pyn_globals.WEBSOCKETPORT, JSCom)
+        DataStruct._connect(WSOCKserver.sendAction)
+        WSOCKserver.serveforever()
 
-		if WebServices.SERVERS_ON:
-			ThreadingServer.force_stop()
-			WSOCKserver.close()
+    @staticmethod
+    def stopServers():
+        a = open(os.path.join(os.path.expanduser("~"), ".pynteractive"), 'wb')
+        pickle.dump(Map.CACHE, a)
+        a.close()
 
-	@staticmethod
-	def startServers():
-		a=threading.Thread(target=WebServices.webServerWorker)
-		b=threading.Thread(target=WebServices.webSocketServerWorker)
-		a.setDaemon(True)
-		b.setDaemon(True)
-		a.start()
-		b.start()
+        if WebServices.SERVERS_ON:
+            ThreadingServer.force_stop()
+            WSOCKserver.close()
+
+    @staticmethod
+    def startServers():
+        a = threading.Thread(target=WebServices.webServerWorker)
+        b = threading.Thread(target=WebServices.webSocketServerWorker)
+        a.setDaemon(True)
+        b.setDaemon(True)
+        a.start()
+        b.start()
+
 
 WebServices.startServers()
 atexit.register(WebServices.stopServers)
-
